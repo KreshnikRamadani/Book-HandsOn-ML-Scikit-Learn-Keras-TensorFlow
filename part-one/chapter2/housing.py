@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from zlib import crc32
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedShuffleSplit
 
 ''' let’s load the data using pandas '''
 def load_housing_data(housing_path="datasets"):
@@ -59,8 +60,26 @@ ANOTHER WAY - SOLUTION: try to use the most stable features to build a unique id
 # housing_data_with_id["id"] = housing_data["longitude"] * 1000 + housing_data["latitude"]
 # train_set, test_set = split_train_test_by_id(housing_data_with_id, 0.2, "id")
 
-
 """ Scikit-Learn provides a few functions to split datasets into multiple subsets in various ways. 
     The simplest function is train_test_split() """
 train_set, test_set = train_test_split(housing_data, test_size= 0.2, random_state= 42)
 
+
+''' Since the median_income is a continuous numerical attribute, you first need to create an income category attribute '''
+housing_data["income_cat"] = pd.cut(housing_data["median_income"],
+                                    bins=[0., 1.5, 3.0, 4.5, 6., np.inf],
+                                    labels=[1,2,3,4,5])
+
+housing_data["income_cat"].hist()
+plt.show()
+
+split_data = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+for train_index, test_index in split_data.split(housing_data, housing_data["income_cat"]):
+    strat_train_set = housing_data.loc[train_index]
+    strat_test_set = housing_data.loc[test_index]
+
+print(strat_test_set["income_cat"].value_counts() / len(strat_test_set))
+
+''' remove the income_cat attribute so the data is back to its original state '''
+for set_ in (strat_train_set, strat_test_set):
+    set_.drop("income_cat", axis=1, inplace=True)
