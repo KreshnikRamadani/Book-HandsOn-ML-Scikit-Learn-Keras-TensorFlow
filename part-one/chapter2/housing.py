@@ -120,5 +120,15 @@ scatter_matrix(housing_data[attributes], figsize=(12,8))
 ''' let’s zoom in on their (median_house_value is the median_income) correlation scatterplot '''
 housing_data.plot(kind="scatter", x="median_income", y="median_house_value", alpha=0.1)
 
-''' (De)coment this line if you want to show/hide all plots '''
-plt.show()
+''' create these new attributes: number of rooms per household, number of bedrooms by itself (rooms), population per household '''
+housing_data["rooms_per_household"] = housing_data["total_rooms"]/housing_data["households"]
+housing_data["bedrooms_per_room"] = housing_data["total_bedrooms"]/housing_data["total_rooms"]
+housing_data["population_per_household"] = housing_data["population"]/housing_data["households"]
+
+''' and now let’s look at the correlation matrix again '''
+corr_matrix = housing_data.corr()
+print(corr_matrix["median_house_value"].sort_values(ascending=False))
+
+
+''' (De)comment this line if you want to show/hide all plots '''
+#plt.show()
