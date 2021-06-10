@@ -5,6 +5,7 @@ import numpy as np
 from zlib import crc32
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import StratifiedShuffleSplit
+from pandas.plotting import scatter_matrix
 
 ''' let’s load the data using pandas '''
 def load_housing_data(housing_path="datasets"):
@@ -24,9 +25,9 @@ print(housing_data["ocean_proximity"].value_counts())
 ''' get summary of each numerical attribute '''
 print(housing_data.describe())
 
-''' plot a histogram for each numerical attribute '''
-housing_data.hist(bins=50, figsize=(20,15))
-plt.show()
+''' plot a histogram for each numerical attribute (Decomment the following line of code if you want to see)'''
+#housing_data.hist(bins=50, figsize=(20,15))
+
 
 ''' METHOD 1: split the data into training set and testing set '''
 """ def split_train_test(data, test_ratio):
@@ -70,16 +71,54 @@ housing_data["income_cat"] = pd.cut(housing_data["median_income"],
                                     bins=[0., 1.5, 3.0, 4.5, 6., np.inf],
                                     labels=[1,2,3,4,5])
 
-housing_data["income_cat"].hist()
-plt.show()
+''' (Decomment the following line of code if you want to see) '''
+#housing_data["income_cat"].hist() 
 
 split_data = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
 for train_index, test_index in split_data.split(housing_data, housing_data["income_cat"]):
     strat_train_set = housing_data.loc[train_index]
     strat_test_set = housing_data.loc[test_index]
 
+''' looking at the income category proportions in the test set '''
 print(strat_test_set["income_cat"].value_counts() / len(strat_test_set))
 
 ''' remove the income_cat attribute so the data is back to its original state '''
 for set_ in (strat_train_set, strat_test_set):
     set_.drop("income_cat", axis=1, inplace=True)
+
+''' create a copy so that you can play with it without harming the training set: '''
+housing_data = strat_train_set.copy()
+
+''' Since there is geographical information (latitude and longitude), it is a good idea to create a scatterplot of all districts to visualize the data 
+Setting the alpha option to 0.1 makes it much easier to visualize the places where there is a high density of data points'''
+housing_data.plot(kind="scatter", x="longitude", y="latitude", alpha=0.1)
+
+
+''' let’s look at the housing prices '''
+housing_data.plot(kind="scatter", 
+                     x="longitude", 
+                     y="latitude",
+                     alpha=0.4,
+                     s=housing_data["population"]/100,
+                     label="population",
+                     figsize=(10,7),
+                     c="median_house_value",
+                     cmap=plt.get_cmap("jet"), 
+                     colorbar=True)
+#plt.legend()
+
+''' dataset is not too large: compute the standard correlation coefficient '''
+corr_matrix = housing_data.corr()
+
+''' let’s look at how much each attribute correlates with the median house value '''
+print(corr_matrix["median_house_value"].sort_values(ascending=False))
+
+''' plot every numerical attribute against every (let’s just focus on a few promising attributes) other numerical attribute.'''
+attributes = ["median_house_value", "median_income", "total_rooms", "housing_median_age"]
+scatter_matrix(housing_data[attributes], figsize=(12,8))
+
+''' let’s zoom in on their (median_house_value is the median_income) correlation scatterplot '''
+housing_data.plot(kind="scatter", x="median_income", y="median_house_value", alpha=0.1)
+
+''' (De)coment this line if you want to show/hide all plots '''
+plt.show()
