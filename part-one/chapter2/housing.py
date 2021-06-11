@@ -6,6 +6,8 @@ from zlib import crc32
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import StratifiedShuffleSplit
 from pandas.plotting import scatter_matrix
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OrdinalEncoder
 
 ''' let’s load the data using pandas '''
 def load_housing_data(housing_path="datasets"):
@@ -129,6 +131,58 @@ housing_data["population_per_household"] = housing_data["population"]/housing_da
 corr_matrix = housing_data.corr()
 print(corr_matrix["median_house_value"].sort_values(ascending=False))
 
-
 ''' (De)comment this line if you want to show/hide all plots '''
 #plt.show()
+
+
+
+''' DATA CLEANING '''
+housing_data = strat_test_set.drop("median_house_value", axis=1)
+housing_labels = strat_test_set["median_house_value"].copy()
+
+print(" \nCount missing values: ", housing_data["total_bedrooms"].isnull().sum())
+
+''' There are three option to fix missing values, Decomment/comment.
+    1. Get rid of the corresponding districts. '''
+#housing_data.dropna(subset=["total_bedrooms"])
+
+''' 2. Get rid of the whole attribute. '''
+#housing_data.drop(["total_bedrooms"])
+
+''' 3. Set the values to some value (zero, the mean, the median, etc.). '''
+#median = housing_data["total_bedrooms"].median()
+#housing_data["total_bedrooms"].fillna(median,inplace=True)
+#print(" \nCount missing values: ", housing_data["total_bedrooms"].isnull().sum())
+
+
+''' Scikit-Learn provides a handy class to take care of missing values:
+    1. create a SimpleImputer instance
+    2. specify that you want to replace each attribute’s missing values with the median of that attribute: '''
+imputer = SimpleImputer(strategy="median")
+
+''' create a copy of the data without the text attribute ocean_proximity, and fit the imputer instance to the training data'''
+housing_num = housing_data.drop("ocean_proximity", axis=1)
+print(" \nCount missing values: ", housing_num["total_bedrooms"].isnull().sum())
+imputer.fit(housing_num)
+
+''' The imputer has simply computed the median of each attribute and stored the result in its statistics_ instance variable. Let's print...'''
+print("statistics_: ",imputer.statistics_)
+
+''' use this “trained” imputer to transform the training set by replacing missing values with the learned medians '''
+X = imputer.transform(housing_num)
+
+''' result is a plain NumPy array containing the transformed features. If you want to put it back into a pandas DataFrame '''
+housing_tr = pd.DataFrame(X,columns=housing_num.columns, index=housing_num.index)
+
+print(" \nCount missing values: ", housing_tr["total_bedrooms"].isnull().sum())
+
+'''NEXT: Handling Text and Categorical Attributes 
+    - create a separate DataFrame only with categories
+    - Let’s convert these categories from text to numbers '''
+
+ordinal_encoder = OrdinalEncoder()
+housing_cat = housing_data.select_dtypes(include=['object']).copy()
+print("categorical values: ", housing_cat.head(10))
+housing_cat_encoded = ordinal_encoder.fit_transform(housing_cat)
+print("categories from text to numbers: ", housing_cat_encoded[:10])
+
