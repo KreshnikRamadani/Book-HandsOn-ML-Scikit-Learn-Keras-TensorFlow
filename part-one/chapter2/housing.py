@@ -7,7 +7,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import StratifiedShuffleSplit
 from pandas.plotting import scatter_matrix
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import OrdinalEncoder
+from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder
+from utils.combined_attributes_adder import CombinedAttributesAdder
+
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.compose import ColumnTransformer
 
 ''' let’s load the data using pandas '''
 def load_housing_data(housing_path="datasets"):
@@ -186,3 +191,40 @@ print("categorical values: ", housing_cat.head(10))
 housing_cat_encoded = ordinal_encoder.fit_transform(housing_cat)
 print("categories from text to numbers: ", housing_cat_encoded[:10])
 
+''' get the list of categories (values) for each categorical attribute '''
+print(ordinal_encoder.categories_)
+
+''' convert categorical values into one-hot vectors '''
+cat_encoder = OneHotEncoder()
+housing_cat_1hot = cat_encoder.fit_transform(housing_cat)
+print(housing_cat_1hot.toarray())
+
+
+
+''' my own small transformer class that adds the combined attributes '''
+attr_adder = CombinedAttributesAdder(add_bedrooms_per_room=False)
+housing_extra_attribs = attr_adder.transform(housing_data.values)
+print('Creating combined attributes: ', housing_extra_attribs)
+
+
+''' transformation pipelines for the numerical attributes '''
+num_pipeline = Pipeline([
+    ('imputer',SimpleImputer(strategy="median")),
+    ('attribs_adder', CombinedAttributesAdder()),
+    ('std_scaler', StandardScaler()),
+])
+
+''' Execute only the numeric pipeline:
+    housing_num_tr = num_pipeline.fit_transform(housing_num) '''
+
+''' FULL PIPELINE: transformation pipelines to clean up and prepare data (handling all columns) for ML algorithms '''
+num_attribs = list(housing_num)     # we get the list of numerical column names
+cat_attribs = ["ocean_proximity"]   # we get the list of categorical column names
+
+full_pipeline = ColumnTransformer([
+    ("num",num_pipeline,num_attribs),
+    ("cat", OneHotEncoder(), cat_attribs),
+])
+
+housing_prepared = full_pipeline.fit_transform(housing_data)
+print('Full Pipeline: ', housing_prepared)
