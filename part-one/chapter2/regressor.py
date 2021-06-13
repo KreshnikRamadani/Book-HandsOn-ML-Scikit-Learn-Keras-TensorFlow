@@ -1,5 +1,6 @@
 # Stand alone: End-to-End Machine Learning Project
 import os
+import joblib
 import pandas as pd
 import numpy as np
 
@@ -12,7 +13,9 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import cross_val_score
 
 
 ''' let’s load the data using pandas '''
@@ -21,16 +24,12 @@ def load_housing_data(housing_path="datasets"):
     return pd.read_csv(csv_path, thousands=',')
 
 housing_data = load_housing_data()
-print(housing_data.head())
-
+#print(housing_data.head())
 
 ''' Since the median_income is a continuous numerical attribute, you first need to create an income category attribute '''
 housing_data["income_cat"] = pd.cut(housing_data["median_income"],
                                     bins=[0., 1.5, 3.0, 4.5, 6., np.inf],
                                     labels=[1,2,3,4,5])
-
-''' (Decomment the following line of code if you want to see) '''
-#housing_data["income_cat"].hist() 
 
 split_data = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
 for train_index, test_index in split_data.split(housing_data, housing_data["income_cat"]):
@@ -47,8 +46,7 @@ num_pipeline = Pipeline([
     ('std_scaler', StandardScaler()),
 ])
 
-''' Execute only the numeric pipeline:
-    housing_num_tr = num_pipeline.fit_transform(housing_num) '''
+''' Execute only the numeric pipeline: housing_num_tr = num_pipeline.fit_transform(housing_num) '''
 
 ''' create a copy of the data without the text attribute ocean_proximity, and fit the imputer instance to the training data'''
 housing_num = housing_data.drop("ocean_proximity", axis=1)
@@ -63,7 +61,7 @@ full_pipeline = ColumnTransformer([
 ])
 
 housing_prepared = full_pipeline.fit_transform(housing_data)
-print('Full Pipeline: ', housing_prepared)
+#print('Full Pipeline: ', housing_prepared)
 
 ''' train a Linear Regression model '''
 lin_reg = LinearRegression()
@@ -81,7 +79,7 @@ print("Labels: ", list(some_labels))
 housing_predictions = lin_reg.predict(housing_prepared)
 lin_mse = mean_squared_error(housing_labels,housing_predictions)
 lin_rmse = np.sqrt(lin_mse)
-print("Root Mean Square Error (RMSE) of LinearRegression: ", lin_rmse)
+print("\n\nLinearRegression - Root Mean Square Error (RMSE): ", lin_rmse)
 
 
 ''' let’s try a more complex model to see how it does: DecisionTreeRegressor '''
@@ -92,4 +90,50 @@ tree_reg.fit(housing_prepared, housing_labels)
 housing_predictions = tree_reg.predict(housing_prepared)
 tree_mse = mean_squared_error(housing_labels, housing_predictions)
 tree_rmse = np.sqrt(tree_mse)
-print("Root Mean Square Error (RMSE) of DecisionTreeRegressor: ", tree_rmse)
+print("\n\nDecisionTreeRegressor - Root Mean Square Error (RMSE): ", tree_rmse)
+
+''' K-fold cross-validation feature to compute the same scores for the Decision Tree Regressor  '''
+scores = cross_val_score(tree_reg, housing_prepared, housing_labels,scoring="neg_mean_squared_error", cv=10)
+tree_rmse_scores = np.sqrt(-scores)
+
+def display_scores(scores):
+    print("Scores:", scores)
+    print("Mean:", scores.mean())
+    print("Standard deviation:", scores.std())
+
+print('Decision Tree Regressor model')
+display_scores(tree_rmse_scores)
+
+''' compute the same scores for the Linear Regression model '''
+lin_scores = cross_val_score(lin_reg, housing_prepared, housing_labels, scoring="neg_mean_squared_error", cv=10)
+lin_rmse_scores = np.sqrt(-lin_scores)
+
+print("\n\nLinear Regression model")
+display_scores(lin_rmse_scores)
+
+''' let's try RandomForestRegressor model '''
+forest_reg = RandomForestRegressor()
+forest_reg.fit(housing_prepared, housing_labels)
+
+''' let’s predict and evaluate it on the training set '''
+housing_predictions = forest_reg.predict(housing_prepared)
+forest_mse = mean_squared_error(housing_labels, housing_predictions)
+forest_rmse = np.sqrt(forest_mse)
+print("\n\nRandomForestRegressor - Root Mean Square Error (RMSE): ", forest_rmse)
+
+''' compute the same scores for the Random Forest Regression model '''
+forest_scores = cross_val_score(forest_reg, housing_prepared, housing_labels, scoring="neg_mean_squared_error", cv=10)
+forest_rmse_scores = np.sqrt(-forest_scores)
+
+print("Random Forest Regression model ")
+display_scores(forest_rmse_scores)
+
+''' save every model we experiment '''
+joblib.dump(lin_reg, "lin_reg.pkl")
+joblib.dump(tree_reg, "tree_reg.pkl")
+joblib.dump(forest_reg, "forest_reg.pkl")
+
+''' come back easily to any model '''
+#lin_reg_loaded = joblib.load("lin_reg.pkl")
+#tree_reg_loaded = joblib.load("tree_reg.pkl")
+#forest_reg_loaded = joblib.load("forest_reg.pkl")
