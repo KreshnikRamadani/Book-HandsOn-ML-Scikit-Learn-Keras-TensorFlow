@@ -14,6 +14,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.compose import ColumnTransformer
 
+
 ''' let’s load the data using pandas '''
 def load_housing_data(housing_path="datasets"):
     csv_path = os.path.join(housing_path,'housing', "housing.csv")
