@@ -137,3 +137,33 @@ display_scores(forest_rmse_scores)
 #lin_reg_loaded = joblib.load("lin_reg.pkl")
 #tree_reg_loaded = joblib.load("tree_reg.pkl")
 #forest_reg_loaded = joblib.load("forest_reg.pkl")
+
+
+""" ''' FINE-TUNE the Model - best combination of hyperparameter values for the RandomForestRegressor '''
+from sklearn.model_selection import GridSearchCV
+
+param_grid = [
+    {'n_estimators':[3,10,30], 'max_features': [2,4,6,8]},
+    {'bootstrap':[False], 'n_estimators':[3,10], 'max_features':[2,3,4]},
+]
+
+forest_reg = RandomForestRegressor()
+grid_search = GridSearchCV(forest_reg, param_grid, cv=5,
+                           scoring='neg_mean_squared_error',
+                           return_train_score=True)
+
+grid_search.fit(housing_prepared, housing_labels)
+
+''' get the best combination of parameters '''
+print('Best combination of parameters: ', grid_search.best_params_) # Result: {'max_features': 8, 'n_estimators': 30}
+
+''' get the best estimator '''
+print('Best estimator: ', grid_search.best_estimator_) # Result: {'max_features': 8, 'n_estimators': 30}
+
+''' get the evaluation scores '''
+cvres = grid_search.cv_results_
+
+for mean_score, params in zip(cvres["mean_test_score"], cvres["params"]):
+    print(np.sqrt(-mean_score), params)
+
+ """
