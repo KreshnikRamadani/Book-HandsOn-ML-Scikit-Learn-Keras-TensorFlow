@@ -129,9 +129,9 @@ print("Random Forest Regression model ")
 display_scores(forest_rmse_scores)
 
 ''' save every model we experiment '''
-joblib.dump(lin_reg, "lin_reg.pkl")
-joblib.dump(tree_reg, "tree_reg.pkl")
-joblib.dump(forest_reg, "forest_reg.pkl")
+#joblib.dump(lin_reg, "lin_reg.pkl")
+#joblib.dump(tree_reg, "tree_reg.pkl")
+#joblib.dump(forest_reg, "forest_reg.pkl")
 
 ''' come back easily to any model '''
 #lin_reg_loaded = joblib.load("lin_reg.pkl")
